@@ -15,7 +15,13 @@ defineEmits<{
   <div class="todo-item" :class="{ 'completed': completed }">
     <label class="checkbox-container">
       <input type="checkbox" :checked="completed" @change="$emit('toggle', id)" />
-      <span class="checkmark"></span>
+      <span class="checkmark">
+        <svg v-if="completed" class="check-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+          viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"
+          stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      </span>
     </label>
     <span class="title">{{ title }}</span>
     <button @click="$emit('delete', id)" class="delete-btn" aria-label="删除">
@@ -25,6 +31,7 @@ defineEmits<{
         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
       </svg>
     </button>
+    <div class="ripple-container"></div>
   </div>
 </template>
 
@@ -32,27 +39,34 @@ defineEmits<{
 .todo-item {
   display: flex;
   align-items: center;
-  padding: 12px 15px;
-  background-color: white;
+  padding: 16px;
+  background-color: var(--item-background);
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  transition: all 0.2s ease;
-  border: 1px solid rgba(0, 0, 0, 0.03);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  border: 1px solid var(--border-color);
+  position: relative;
+  overflow: hidden;
 }
 
 .todo-item:hover {
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
-  transform: translateY(-1px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.07);
+  transform: translateY(-2px);
+}
+
+.todo-item:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
 
 .todo-item.completed {
-  opacity: 0.8;
-  background-color: #f9f9f9;
+  opacity: 0.85;
+  background-color: rgba(var(--primary-rgb, 135, 116, 225), 0.05);
 }
 
 .todo-item.completed .title {
   text-decoration: line-through;
-  color: #999;
+  color: var(--text-secondary);
 }
 
 .title {
@@ -60,14 +74,14 @@ defineEmits<{
   flex-grow: 1;
   font-size: 1rem;
   font-weight: 500;
-  color: #333;
-  transition: color 0.2s ease;
+  color: var(--text-primary);
+  transition: color 0.3s ease;
   word-break: break-word;
 }
 
 .delete-btn {
   background-color: transparent;
-  color: #d63031;
+  color: var(--danger);
   border: none;
   border-radius: 8px;
   width: 34px;
@@ -77,11 +91,11 @@ defineEmits<{
   justify-content: center;
   cursor: pointer;
   opacity: 0.7;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 .delete-btn:hover {
-  background-color: rgba(214, 48, 49, 0.1);
+  background-color: rgba(var(--danger-rgb, 214, 48, 49), 0.1);
   opacity: 1;
   transform: scale(1.1);
 }
@@ -116,38 +130,91 @@ defineEmits<{
   left: 0;
   height: 22px;
   width: 22px;
-  background-color: #f1f1f1;
+  background-color: var(--background);
   border-radius: 6px;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  transition: all 0.2s ease;
+  border: 2px solid var(--border-color);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
 }
 
 .checkbox-container:hover input~.checkmark {
-  background-color: #e9e9e9;
+  border-color: var(--primary);
+  background-color: rgba(var(--primary-rgb, 135, 116, 225), 0.1);
+  transform: scale(1.05);
 }
 
 .checkbox-container input:checked~.checkmark {
-  background-color: #8774e1;
-  border-color: #8774e1;
+  background-color: var(--primary);
+  border-color: var(--primary);
+  transform: scale(1.05);
 }
 
-.checkmark:after {
-  content: "";
+.check-icon {
+  opacity: 0;
+  transform: scale(0);
+  transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.checkbox-container input:checked~.checkmark .check-icon {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* 波纹效果 */
+.ripple-container {
   position: absolute;
-  display: none;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  overflow: hidden;
 }
 
-.checkbox-container input:checked~.checkmark:after {
-  display: block;
+@keyframes ripple {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0.5;
+  }
+
+  100% {
+    transform: translate(-50%, -50%) scale(2);
+    opacity: 0;
+  }
 }
 
-.checkbox-container .checkmark:after {
-  left: 7px;
-  top: 3px;
-  width: 6px;
-  height: 11px;
-  border: solid white;
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
+.todo-item:active::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(var(--primary-rgb, 135, 116, 225), 0.1);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  animation: ripple 0.6s ease-out;
+}
+
+/* 支持暗色模式 */
+:global(.dark-mode) .todo-item {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+:global(.dark-mode) .todo-item:hover {
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+:global(.dark-mode) .checkbox-container:hover input~.checkmark {
+  background-color: rgba(var(--primary-rgb, 135, 116, 225), 0.2);
+}
+
+@media (max-width: 480px) {
+  .todo-item {
+    padding: 12px;
+  }
 }
 </style>
